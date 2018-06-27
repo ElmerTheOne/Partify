@@ -4,6 +4,8 @@
   "description": "my first socket.io app",
   "depencencies": {},
   "dependencies": {
+    "cookie-parser": "^1.4.3",
+    "cors": "^2.8.4",
     "curl": "^0.1.4",
     "express": "^4.16.2",
     "get-spotify-client-credentials": "^1.0.0",
@@ -11,6 +13,7 @@
     "httpreq": "^0.4.24",
     "jquery": "^3.2.1",
     "present": "^1.0.0",
+    "querystring": "^0.2.0",
     "socket.io": "^2.0.4",
     "xmlhttprequest": "^1.8.0"
   }

@@ -2,30 +2,51 @@ var testing = true;
 var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
-var curl = require('curl');
 var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 var xhr = new XMLHttpRequest();
+var querystring = require('querystring');
 var request = require('request');
 // Authentication
 var present = require('present');
+var cookieParser = require('cookie-parser');
 app.get('/', function(req, res){
   res.sendFile(__dirname + '/index.html');
 });
 
-var id = 0;
+var redirect_uri = "http://127.0.0.1:3000";
 
+var scope = "user-read-private user-read-email user-modify-playback-state playlist-modify-public playlist-modify-private";
+
+var id = 0;
 var currentPlaylist = null;
 currentPlaylist = "spotify:user:johankul:playlist:6kIaKvJA5nCwgOILPSWt7m";
 
-
+var authorization_code = -1;
 var access_token = -1;
-
-var clientId = 'e5f79e80b796455581300e8ad50e7c66';
+var client_id = 'e5f79e80b796455581300e8ad50e7c66';
 var clientSecret = '56bcde383ce54c0cad1a4221bd118d81';
-var payload = clientId + ":" + clientSecret;
+var state = "HelloThisIsATest";
+var payload = client_id + ":" + clientSecret;
 var encodedPayload = new Buffer(payload).toString("base64");
 
 var users = new Array();
+
+var stateKey = 'spotify_auth_state';
+
+function authRedirect() {
+  var str = 'https://accounts.spotify.com/authorize?' +
+    querystring.stringify({
+      response_type: 'code',
+      client_id: client_id,
+      scope: scope,
+      state: state,
+      redirect_uri: redirect_uri
+    });
+
+  return str;
+}
+
+
 
 function user(sock_id, host, ip) {
   this.ip = ip;
@@ -57,6 +78,7 @@ function getToken(callback) {
 
 	request(opts, function(err, res, body) {
 		console.log(err);
+    console.log(body);
 		//console.log(res.statusCode);
 		//console.log(body);
 		var token = JSON.parse(body).access_token;
@@ -65,6 +87,45 @@ function getToken(callback) {
 	});
 }
 
+
+
+function getAccessToken(callback, authorization_code,asd) {
+  var redir = querystring.stringify({redirect_uri});
+  var bdy = {
+    "grant_type": 'authorization_code',
+    "code": authorization_code,
+    "redirect_uri": redirect_uri
+  };
+  var opts = {
+	url: "https://accounts.spotify.com/api/token",
+    method: "POST",
+    headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": "Basic " + encodedPayload
+    },
+    body: "grant_type=authorization_code&code="+authorization_code+"&redirect_uri="+redirect_uri
+	};
+
+
+  //console.log(opts);
+
+	request(opts, function(err, res, body) {
+    //console.log(opts)
+    if(err == null) {
+      access_token = JSON.parse(body).access_token;
+
+
+      callback(access_token);
+    } else {
+      console.log(res);
+      io.emit('passToConsole', res);
+  		// console.log(body);
+  		//console.log(body);
+  		callback("");
+    }
+
+	});
+}
 
 
 function runTests() {
@@ -78,82 +139,96 @@ function runTests() {
 
 }
 
+function getPlaylist(access_token) {
 
-
+}
+access_token = "BQB1zHmqvYgm-DN7JuOalgva0klwcPZpiSm3t4yVvBikBmsHC-uzr73wlkdRmv_V6n5aPRjkO2cXEWD0QGbKIk6h89kZa8jKOQQcioDarR0kQ05jzKkVnrbVZkni3pjgdYdN03qA1i2tIAhMXEw617KDKD9Tdab2";
 //  Implementation works serverside
-function startPlayback(access_token, uri) {
-    xhr.open("PUT", 'https://api.spotify.com/v1/me/player/play', true);
-    xhr.setRequestHeader("Authorization", "Bearer " + access_token);
-    xhr.send(JSON.stringify({
-          'context_uri': "spotify:user:johankul:playlist:6kIaKvJA5nCwgOILPSWt7m",
-          'offset': {
-              'position' :'0'
-          }
-          }));
 
-   /* $.ajax({
-        url: 'https://api.spotify.com/v1/me/player/play',
-        headers: { 'Authorization': 'Bearer ' + access_token },
-        method: 'PUT',
-       //   Works fine
-        data: JSON.stringify({
-            "context_uri": uri,
-            "offset": {
-                "position": 0
-            }
-            }),
-        json: true,
-        success: result => {
-            console.log(result);
-        }
+
+function removeTracksFromPlaylist(access_token,uri) {
+
+}
+
+function addTrackToPlaylist(callback,access_token,uri) {
+  var strs = currentPlaylist.split(":");
+  for(var i = 0; i < strs.length; i++) {
+    console.log(i + " " + strs[i]);
+  }
+
+  url = "https://api.spotify.com/v1/users/"+strs[2]+"/playlists/"+strs[4]+"/tracks"
+  console.log(url);
+  var bdy = JSON.stringify({
+    uris: [uri]
+  });
+  var opts = {
+    url: url,
+    method: "POST",
+    body: bdy,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+  		"Authorization": "Bearer " + access_token
+    }
+  };
+
+  request(opts, function(err, res, body){
+    console.log(err);
+    console.log(res);
+    callback();
+  });
+}
+
+function startPlayback(access_token, uri, callback) {
+    var bdy = JSON.stringify({
+        //"context_uri="+"spotify:track:4WKujnArWJAJFAQfMyBhc8"
+        context_uri: uri
     });
-    console.log(uri);
-    */
+    var opts = {
+      url: 'https://api.spotify.com/v1/me/player/play',
+      method: "PUT",
+      body: bdy,
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+				"Authorization": "Bearer " + access_token
+      }
+    };
+
+
+    request(opts, function(err, res, body){
+      console.log(err);
+    });
+
 }
 
 function getTrackInfo(callback, uri) {
-	if(access_token == -1) {
-		getToken(function(data) {
-			//console.log(data);
-			var id = uri.split(":")[2];
-			//var encodedPayload = new Buffer(token).toString("base64");
-			//console.log("tkn: " + data);
-			var opts = {
-				url: "https://api.spotify.com/v1/tracks/"+id,
-				method: "GET",
-				headers: {
-				"Content-Type": "application/x-www-form-urlencoded",
-				"Authorization": "Bearer " + data}
-				};
-
-			request(opts, function(err, res, body) {
-				//console.log(res.statusCode);
-				// console.log(body);
-				//console.log(body);
-				callback(body);
-			});
-		});
-	} else {
+	getToken(function(data) {
+		//console.log(data);
 		var id = uri.split(":")[2];
+		//var encodedPayload = new Buffer(token).toString("base64");
+		//console.log("tkn: " + data);
 		var opts = {
 			url: "https://api.spotify.com/v1/tracks/"+id,
 			method: "GET",
 			headers: {
-				"Content-Type": "application/x-www-form-urlencoded",
-				"Authorization": "Bearer " + data}
+			"Content-Type": "application/x-www-form-urlencoded",
+			"Authorization": "Bearer " + data}
 			};
 
-
-		request(opts, function(err, res, body) {
-			// console.log(err);
-			// console.log(res.statusCode);
+		request(opts, function(err, res, body){
+			//console.log(res.statusCode);
 			// console.log(body);
+			//console.log(body);
 			callback(body);
 		});
-	}
-
+	});
 
 }
+
+
+
+
+
+
 
 
 function sendQueue(io, queue) {
@@ -172,6 +247,7 @@ var queue = {
 
 function createTrack(callback, URI) {
 	getTrackInfo(function(info) {
+    console.log(info);
 		parsed_info = JSON.parse(info);
 		var artist = parsed_info.artists[0].name;
 		var song_name = parsed_info.name;
@@ -330,6 +406,31 @@ function validLink(URI) {
 }
 
 
+function playbackStart(access_token) {
+  if(access_token == -1) {
+    // getAccessToken(function(callback_param) {
+    //   access_token = callback_param;
+    //   startPlayback(access_token,currentPlaylist);
+    // },code,str);
+    console.log("NO USER AUTHORIZED");
+  } else {
+    console.log("Starting?");
+    startPlayback(access_token,currentPlaylist);
+  }
+}
+
+  function getUserInfoTest() {
+    if(access_token == -1) {
+      getAccessToken(function(callback_param) {
+        access_token = callback_param;
+
+      },code,str);
+    } else {
+
+    }
+  }
+
+
 
 io.on('connection', function(socket){
     //console.log(socket.id);
@@ -346,14 +447,47 @@ io.on('connection', function(socket){
 	}
 
 	//io.sockets.connected[client_id].emit('chat message', "Welcome, only you should see this");
+  // Sends this code to get an authorization token;
 
-    socket.on('sync', function(msg, token) {
-        startPlayback(token, currentPlaylist);
-        //seek(token, time);
-        console.log(socket.id);
-        console.log(msg);
-        console.log(token);
-    });
+
+  socket.on('start', function() {
+    console.log("pls work?");
+    playbackStart(access_token);
+  });
+
+  socket.on('user_code',function(str) {
+    //  console.log(str);
+    var code;
+
+    var re = /code=(.*)&state=(.*)/g;
+    var matches = re.exec(str);
+    console.log(matches.length);
+
+    if(matches.length >= 3) {
+      var parsed_state = matches[2];
+      if(state == parsed_state) {
+        console.log("Proper state");
+        code = matches[1];
+
+        getAccessToken(function(callback_param) {
+
+          access_token = callback_param;
+          console.log(access_token);
+        },code,str);
+
+      }
+    }
+  });
+
+
+
+    // socket.on('sync', function(msg, token) {
+    //     startPlayback(token, currentPlaylist);
+    //     //seek(token, time);
+    //     console.log(socket.id);
+    //     console.log(msg);
+    //     console.log(token);
+    // });
     socket.on('chat message', function(msg){
       console.log('message: ' + msg);
        // io.emit('chat message', getTime() + msg);
@@ -365,24 +499,36 @@ io.on('connection', function(socket){
         console.log("The ping is: " + ping + " ms.");
     });
 
+    socket.on('Authenticate user', function(username, password){
+        if(username == "test" && password == "test") {
+          var new_redirect_uri;
+          var URL = authRedirect();
+          var ret = "" + URL;
+
+          io.sockets.connected[client_id].emit('Access granted',ret);
+
+        }
+    });
+
+
     socket.on('disconnect', function(){
         console.log('user disconnected');
     });
 
     socket.on('add song', function(URI) {
-		console.log('Adding song URI ' + URI);
-		var bool = validLink(URI);
-		var substrs;
-		if(bool == 1) {
+    	console.log('Adding song URI ' + URI);
+    	var bool = validLink(URI);
+    	var substrs;
+    	if(bool == 1) {
 
-		} else if(bool == 2){
-			substrs = URI.match(/track\/([^?]*)/);
-			console.log("asd");
-			console.log(substrs[1]);
-		} else {
-			io.sockets.connected[client_id].emit('alert', "The song format is invalid, please use a spotify link or URI");
+    	} else if(bool == 2){
+    		substrs = URI.match(/track\/([^?]*)/);
+    		console.log("asd");
+    		console.log(substrs[1]);
+    	} else {
+    		io.sockets.connected[client_id].emit('alert', "The song format is invalid, please use a spotify link or URI");
 
-			return;
+		    return;
 		}
 		if(bool == 2) {
 			var temp = "spotify:track:";
@@ -399,16 +545,18 @@ io.on('connection', function(socket){
 				reorder();
 				io.emit("queue update", JSON.stringify(queue));
 			} else {
+        console.log(URI);
+        createTrack( function(track) {
+          addTrackToPlaylist(function(err) {
 
-				createTrack( function(track) {
+            queue.queue.push(track);
+      			reorder();
+      			io.emit("queue update", JSON.stringify(queue));
+          },access_token,track.URI)
 
-				queue.queue.push(track);
-				reorder();
-				io.emit("queue update", JSON.stringify(queue));
-				},URI);
+  			},URI);
 			}
-		}
-
+        }
     });
 
 

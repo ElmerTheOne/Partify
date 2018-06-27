@@ -1,0 +1,210 @@
+<!doctype html>
+<!-- TODO: FIX  -->
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font: 13px Helvetica, Arial; }
+        #chat { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+        #chat input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+        #chat button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+        #messages { list-style-type: none; margin: 0; padding: 0; }
+        #messages li { padding: 5px 10px; }
+        #messages li:nth-child(odd) { background: #eee; }
+        .album-art {
+          float: left;
+        }
+        .song {
+          display: flex;
+          flex-direction : row;
+          justify-content: flex-start;
+        }
+
+        .upvote_button {
+
+          margin-left: 10px;
+          height: 40px;
+          width: 40px;
+          /* background-color: black; */
+          align-self: center;
+        }
+
+        .upvote {
+          /* background: url("./40.png") left top no-repeat; */
+
+          background: url("http://via.placeholder.com/40x40") left top no-repeat;
+          height: 100%;
+          width: 100%;
+        }
+
+
+
+  	  .song p {
+  		align-self: center;
+  		/*
+  		display: flex;
+  		position: absolute;
+  		float: right;
+  		top: 50%;
+  		transform: translate(0, -50%);
+  		*/
+  	  }
+
+  	  .title_artist{
+  		display: flex;
+  		flex-direction : column;
+  		justify-content: flex-start;
+  		padding-left:5px;
+  	  }
+
+  	  .title_artist p {
+  		font-size: 24px;
+
+  	  }
+
+  	  .title_artist p1 {
+  		font_size: 18px;
+
+  		border-left-width: 2px;
+  		border-left-color: rgb(255,255,255);
+  	  }
+
+
+      </style>
+    </head>
+    <body>
+
+    <form id="SearchField" action="">
+      <input id="submit" autocomplete="off"  /><button>Submit</button>
+    </form>
+
+
+
+    <ul id="messages">
+		<li>
+			<div class="song"><img class='album-art' src="http://via.placeholder.com/64x64"></img>
+				<div class="title_artist"><p>Title</p><p1>Artist</p1> </div>
+        <div class="upvote_button">
+          <button class="upvote">
+
+          </button>
+        </div>
+			</div>
+
+		</li>
+	</ul>
+
+
+    <button id="play_pause">Play/Pause</button>
+    <button id="ping">ping</button>
+     <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/handlebars.js/2.0.0-alpha.1/handlebars.min.js"></script>
+    <!-- <script src="http://localhost:3000/socket.io/socket.io.js"></script> -->
+
+
+    <script>
+
+
+
+    function upvote(socket, song_id) {
+
+    }
+
+
+
+		function createDiv(element,i) {
+			// URI
+			var rii = "<div class=\"song\" >";
+
+			rii += ("<img class ='album-art' src ='"+element.icon_src+"' alt='album art placeholder'></img><div class='title_artist'>");
+			rii += "<p>" + element.title + "</p> <br> <p1>" +  element.artist + "</p></div>";
+
+			rii += + " " + element.upvotes +'<div class="upvote_button" id="song_'+i+'"> <button class="upvote"> </button>';"</div>";
+      rii+= "</div>"
+			return rii;
+		}
+
+    var socket = io();
+    $(function () {
+        //var socket = io();
+      $('form').submit(function() {
+        console.log($('#m'));
+        socket.emit('chat message', $('#m').val());
+        $('#m').val('');
+        return false
+      });
+
+			socket.on('alert', function(msg) {
+				console.log(msg);
+				alert(msg);
+			});
+
+      socket.on('chat message', function(msg) {
+        $('#messages').append($('<li>').text(msg));
+      });
+
+			socket.on('queue update', function(json) {
+				if(json == -1) {
+
+				}
+				else {
+					queue = JSON.parse(json).queue;
+					console.log(queue);
+					console.log(queue[0].URI);
+					$('#messages').empty();
+					for(var i = 0; i < queue.length; i++) {
+						//$('#messages').append($('<li>').text(queue[i].URI));
+						var li = document.createElement("li");
+						li.innerHTML = createDiv(queue[i],i);
+						$('#messages').append(li);
+					}
+
+          for(var i = 0; i < queue.length; i++) {
+
+          }
+				}
+
+
+			});
+
+            $('#SearchField').submit(function() {
+              console.log("HEEEEY");
+              socket.emit('add song', $('#submit').val());
+              $('#submit').val('');
+              return false;
+            });
+
+        });
+
+
+        // document.getElementById("ping").addEventListener('click', function() {
+        //     var d = Date.now();
+        //     socket.emit('chat ping', d);
+        //
+        // }, false);
+        //
+        // document.getElementById("play_pause").addEventListener('click', function() {
+        //     console.log("yo");
+        // }, false);
+
+        window.onload = function() {
+          window.addEventListener("dragover", function(event) {
+          event.preventDefault();
+        });
+
+      	window.addEventListener('drop', function(e) {
+      		console.log("test");
+      		e.preventDefault();
+          var URL = e.dataTransfer.getData("Text");
+          socket.emit('add song', URL);
+      	});
+      }
+
+
+
+
+    </script>
+  </body>
+</html>

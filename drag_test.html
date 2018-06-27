@@ -1,0 +1,84 @@
+<!doctype html>
+<!-- Don't need the chat function at all? -->
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+	html, body {
+		height: 100%;
+		width: 100%
+	}
+		#drop {
+			display_ block;
+			min-height: 100%;
+			
+			
+		}
+
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; }
+      #chat { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+      #chat input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      #chat button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages li { padding: 5px 10px; }
+      #messages li:nth-child(odd) { background: #eee; }
+	  .album-art {
+		float: left;
+	  }
+	  .song {
+		display: flex;
+		flex-direction : row;
+		justify-content: flex-start;
+	  }
+	  
+	  .song p {
+		align-self: center;
+		/* 
+		display: flex;
+		position: absolute;
+		float: right;
+		top: 50%;
+		transform: translate(0, -50%);
+		*/
+	  }
+	  
+	  .title_artist{
+		display: flex;
+		flex-direction : column;
+		justify-content: flex-start;
+		padding-left:5px;
+	  }
+	  
+	  .title_artist p {
+		font-size: 24px;
+		
+	  }
+	  
+	  .title_artist p1 {
+		font_size: 18px;
+		
+		border-left-width: 2px;
+		border-left-color: rgb(255,255,255);
+	  }
+	  
+	  
+    </style>
+  </head>
+  <body  ondrop="getDraggedText(event);">
+		<script type="text/javascript"> 
+			function getDraggedText(e) {
+				console.log("body1");
+				e.preventDefault();
+				e.stopImmediatePropagation()
+				console.log(e);
+				var content = e.dataTransfer.getData("Text");
+				console.log(content);
+			}
+		</script>
+		<div id="drop" ondrop="getDraggedText(event);"></div>
+		
+  </body>
+  
+  <script src="drag_test.js"></script>
+</html>

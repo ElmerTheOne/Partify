@@ -19,7 +19,7 @@ var scope = "user-read-private user-read-email user-modify-playback-state playli
 
 var id = 0;
 var currentPlaylist = null;
-currentPlaylist = "spotify:user:johankul:playlist:6kIaKvJA5nCwgOILPSWt7m";
+currentPlaylist = "spotify:user:username:playlist:uri"; // Change this
 
 var authorization_code = -1;
 var access_token = -1;
